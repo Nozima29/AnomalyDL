@@ -57,15 +57,15 @@ class Network:
             attack = batch['attack']
             labels.append(attack)
             answer, guess = self.infer(batch)
-            # distance = torch.norm(
-            #     guess - answer, p=conf.EVALUATION_NORM_P, dim=1)
-            # distances.append(distance)
+            distance = torch.norm(
+                guess - answer, p=conf.EVALUATION_NORM_P, dim=1)
+
             distances.append(torch.abs(answer - guess).cpu().numpy())
-            #epoch_loss += torch.sum(distance).item()
+            epoch_loss += torch.sum(distance).item()
             n_datapoints += len(ts)
             tms.append(batch['ts'])
         context = {
-            # 'loss': epoch_loss / n_datapoints,
+            'loss': epoch_loss/n_datapoints,
             'dist': np.concatenate(distances),
             'ts': np.concatenate(tms),
             'label': np.concatenate(labels)
