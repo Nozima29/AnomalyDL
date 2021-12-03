@@ -9,7 +9,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-import conf
+from dataset import conf
 
 #NORMAL = 'data/swat-attack.csv'
 NORMAL = 'data/swat-test.csv'

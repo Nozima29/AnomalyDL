@@ -1,4 +1,6 @@
 from enum import Enum
+import easydict
+import torch
 
 HEADER_STRING_TIMESTAMP = 't_stamp'
 HEADER_STRING_NORMAL_OR_ATTACK = 'State'
@@ -147,3 +149,20 @@ ANOMALY_PROBS_PICKLE = 'dat/digged_probs.dat'
 N_HIDDEN_CELLS = 64
 EVALUATION_NORM_P = 4
 BATCH_SIZE = 64
+args = easydict.EasyDict({
+    'output_size': 2,
+    'window_size': WINDOW_GIVEN,
+    'batch_size': 64,
+    'lr': 1e-3,
+    'e_features': 2,
+    'd_features': 2,
+    'd_hidn': 32,
+    'n_head': 4,
+    'd_head': 32,
+    'dropout': 0.1,
+    'd_ff': 32,
+    'n_layer': 3,
+    'dense_h': 32,
+    'epochs': 3,
+    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+})
