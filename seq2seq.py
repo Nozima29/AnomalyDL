@@ -155,7 +155,7 @@ class Network:
         answer = batch['answer'].to(self.gpu)
         encoder_outs, context = self.encoder(given)
         guess = self.decoder(encoder_outs, context, predict)
-        print(guess.shape)
+        # print(guess.shape)
         return answer, guess
 
     def load(self, idx: int) -> float:

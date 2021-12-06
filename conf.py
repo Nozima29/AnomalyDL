@@ -152,10 +152,9 @@ BATCH_SIZE = 64
 args = easydict.EasyDict({
     'output_size': 2,
     'window_size': WINDOW_GIVEN,
-    'batch_size': 64,
+    'batch_size': 1024,
     'lr': 1e-3,
     'e_features': 2,
-    'd_features': 2,
     'd_hidn': 32,
     'n_head': 4,
     'd_head': 32,

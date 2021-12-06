@@ -21,7 +21,7 @@ def get_sinusoid_encoding_table(n_seq, hidn):
 
 
 def get_attn_decoder_mask(seq):
-    batch, window_size, d_hidn = seq.size()
+    batch, window_size, _ = seq.size()
     subsequent_mask = torch.ones(
         (batch, window_size, window_size), device=seq.device)
     subsequent_mask = subsequent_mask.triu(diagonal=1)
@@ -155,97 +155,19 @@ class Encoder(nn.Module):
         return outputs
 
 
-class Decoderlayer(nn.Module):
-    def __init__(self, args):
-        super().__init__()
-        self.args = args
-        self.self_attn = Multiheadattention(self.args)
-        self.dec_enc_attn = Multiheadattention(self.args)
-        self.pos_ffn = Poswisefeedforwardnet(self.args)
-
-    def forward(self, dec_inputs, enc_outputs, attn_mask):
-        self_att_outputs, dec_attn_prob = self.self_attn(
-            dec_inputs, dec_inputs, dec_inputs, attn_mask)
-        self_att_outputs = self_att_outputs + dec_inputs
-
-        dec_enc_att_outputs, dec_enc_attn_prob = self.dec_enc_attn(
-            self_att_outputs, enc_outputs, enc_outputs)
-        dec_enc_att_outputs = dec_enc_att_outputs + self_att_outputs
-
-        ffn_outputs = self.pos_ffn(dec_enc_att_outputs)
-        ffn_outputs = ffn_outputs + dec_enc_att_outputs
-
-        return ffn_outputs, dec_attn_prob, dec_enc_attn_prob
-
-
-class Decoder(nn.Module):
-    def __init__(self, args):
-        super().__init__()
-        self.args = args
-        self.dec_emb = nn.Linear(
-            in_features=self.args.d_features, out_features=self.args.d_hidn, bias=False)
-        sinusoid_table = torch.FloatTensor(
-            get_sinusoid_encoding_table(self.args.window_size, self.args.d_hidn))
-        self.pos_emb = nn.Embedding.from_pretrained(
-            sinusoid_table, freeze=True)
-        self.layers = nn.ModuleList(
-            [Decoderlayer(self.args) for _ in range(self.args.n_layer)])
-        self.dec_attn_probs = None
-        self.dec_enc_attn_probs = None
-
-    def forward(self, dec_inputs, enc_outputs):
-        self.dec_attn_probs = []
-        self.dec_enc_attn_probs = []
-        positions = torch.arange(dec_inputs.size(1), device=dec_inputs.device).expand(
-            dec_inputs.size(0), dec_inputs.size(1)).contiguous()
-        dec_output = self.dec_emb(dec_inputs) + self.pos_emb(positions)
-
-        attn_mask = torch.gt(get_attn_decoder_mask(dec_inputs), 0)
-
-        for layer in self.layers:
-            dec_outputs, dec_attn_prob, dec_enc_attn_prob = layer(
-                dec_output, enc_outputs, attn_mask)
-            self.dec_attn_probs.append(dec_attn_prob)
-            self.dec_enc_attn_probs.append(dec_enc_attn_prob)
-
-        return dec_outputs
-
-
-class TimeDistributed(nn.Module):
-    def __init__(self, module):
-        super(TimeDistributed, self).__init__()
-        self.module = module
-
-    def forward(self, x):
-
-        if len(x.size()) <= 2:
-            return self.module(x)
-
-        x_reshape = x.contiguous().view(-1, x.size(-1))
-        y = self.module(x_reshape)
-
-        if len(x.size()) == 3:
-            y = y.contiguous().view(x.size(0), -1, y.size(-1))
-
-        return y
-
-
 class Transformer(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.args = args
         self.encoder = Encoder(self.args)
-        self.decoder = Decoder(self.args)
-        self.fc1 = TimeDistributed(nn.Linear(
-            in_features=self.args.window_size*self.args.d_hidn, out_features=self.args.dense_h))
-        self.fc2 = TimeDistributed(
-            nn.Linear(in_features=self.args.dense_h, out_features=self.args.output_size))
+        self.fc1 = nn.Linear(in_features=self.args.d_hidn *
+                             args.e_features, out_features=self.args.d_hidn)
+        self.fc2 = nn.Linear(in_features=self.args.d_hidn,
+                             out_features=self.args.e_features)
 
-    def forward(self, enc_inputs, dec_inputs):
+    def forward(self, enc_inputs):
         enc_outputs = self.encoder(enc_inputs)
-        dec_outputs = self.decoder(dec_inputs, enc_outputs)
+        output = self.fc1(enc_outputs.view(enc_outputs.size(0), -1))
+        output = self.fc2(output)
 
-        dec_outputs = self.fc1(dec_outputs.view(dec_outputs.size(0), -1))
-        dec_outputs = self.fc2(dec_outputs)
-
-        return dec_outputs
+        return output

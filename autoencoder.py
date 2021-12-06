@@ -57,7 +57,9 @@ class Decoder(nn.Module):
     def forward(self, x):
         x, (_, _) = self.rnn1(x)
         x, (_, _) = self.rnn2(x)
-        return self.output_layer(x)
+        x = self.output_layer(x)
+        x = x.reshape(x.shape[1], x.shape[2])
+        return x
 
 
 class RecurrentAutoencoder(nn.Module):

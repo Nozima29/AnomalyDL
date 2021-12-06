@@ -1,11 +1,11 @@
-from seq2seq_model import Network
+from seq2seq import Network
 from swat_dataset import SWaTDataset
 from datetime import datetime
 import conf
 from conf import args
 import sys
 import torch
-from transformer_model import Transformer
+from transformer import Transformer
 from autoencoder import RecurrentAutoencoder
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -16,13 +16,13 @@ import copy
 def train_model(type):
     train_dataset = SWaTDataset(
         'data/dat/swat-train-P{}.dat'.format(1), attack=False)
+    train_dataloader = DataLoader(
+        train_dataset, batch_size=conf.BATCH_SIZE, shuffle=True)
 
     if type == 'trans':
         model = Transformer(args).to(args.device)
         loss_function = torch.nn.MSELoss()
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-        train_dataloader = DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=True)
 
         for epoch in tqdm(range(1, args.epochs+1)):
             total_loss = 0
@@ -32,8 +32,7 @@ def train_model(type):
                 target = data['answer']
                 model.train()
                 optimizer.zero_grad()
-                pred = model(input_data.to(args.device),
-                             input_data.to(args.device))
+                pred = model(input_data.to(args.device))
                 loss = loss_function(pred, target.to(args.device))
                 loss.backward()
                 optimizer.step()
@@ -64,8 +63,6 @@ def train_model(type):
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
         criterion = torch.nn.MSELoss()
         history = dict(train=[], val=[])
-        train_dataloader = DataLoader(
-            train_dataset, batch_size=conf.BATCH_SIZE, shuffle=True)
 
         for epoch in range(1, conf.args.epochs + 1):
             model = model.train()

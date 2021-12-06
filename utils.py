@@ -1,8 +1,8 @@
+from sklearn.metrics import roc_auc_score, roc_curve, auc
+import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_auc_score
 
 
 def range_check(series, size):
@@ -57,3 +57,51 @@ def get_score(score, groud_truth):
     plt.plot(c_score, label="after")
     plt.legend()
     plt.show()
+
+
+def plot_roc():
+    seq_score = pd.read_csv('seq.csv')
+    enc_score = pd.read_csv('enc.csv')
+    trans_score = pd.read_csv('trans.csv')
+
+    fpr1, tpr1, _ = roc_curve(seq_score['label'], seq_score['score'])
+    roc_auc1 = auc(fpr1, tpr1)
+
+    fpr2, tpr2, _ = roc_curve(enc_score['label'], enc_score['score'])
+    roc_auc2 = auc(fpr2, tpr2)
+
+    fpr3, tpr3, _ = roc_curve(trans_score['label'], trans_score['score'])
+    roc_auc3 = auc(fpr3, tpr3)
+
+    plt.figure()
+    plt.plot(
+        fpr1,
+        tpr1,
+        color="darkorange",
+        label="ROC curve for Seq2seq (area = %0.2f)" % roc_auc1,
+    )
+
+    plt.plot(
+        fpr2,
+        tpr2,
+        color="darkblue",
+        label="ROC curve for LSTMEncoder (area = %0.2f)" % roc_auc2,
+    )
+
+    plt.plot(
+        fpr3,
+        tpr3,
+        color="darkred",
+        label="ROC curve for Transformer (area = %0.2f)" % roc_auc3,
+    )
+
+    plt.xlim([-0.1, 1.0])
+    plt.ylim([-0.1, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Receiver operating characteristic")
+    plt.legend(loc="lower right")
+    plt.show()
+
+
+# plot_roc()
