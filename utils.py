@@ -53,8 +53,8 @@ def get_score(score, groud_truth):
     print('ROC-AUC score:',  auc)
 
     plt.figure(figsize=(15, 5))
-    plt.plot(score, label="before")
-    plt.plot(c_score, label="after")
+    plt.plot(score[:500], label="before")
+    plt.plot(c_score[:500], label="after")
     plt.legend()
     plt.show()
 
@@ -64,44 +64,52 @@ def plot_roc():
     enc_score = pd.read_csv('enc.csv')
     trans_score = pd.read_csv('trans.csv')
 
-    fpr1, tpr1, _ = roc_curve(seq_score['label'], seq_score['score'])
+    fpr1, tpr1, th1 = roc_curve(seq_score['label'], seq_score['score'])
     roc_auc1 = auc(fpr1, tpr1)
 
-    fpr2, tpr2, _ = roc_curve(enc_score['label'], enc_score['score'])
+    fpr2, tpr2, th2 = roc_curve(enc_score['label'], enc_score['score'])
     roc_auc2 = auc(fpr2, tpr2)
 
-    fpr3, tpr3, _ = roc_curve(trans_score['label'], trans_score['score'])
+    fpr3, tpr3, th3 = roc_curve(trans_score['label'], trans_score['score'])
     roc_auc3 = auc(fpr3, tpr3)
 
-    plt.figure()
-    plt.plot(
-        fpr1,
-        tpr1,
-        color="darkorange",
-        label="ROC curve for Seq2seq (area = %0.2f)" % roc_auc1,
-    )
+    optimal_idx = np.argmax(tpr3 - fpr3)
+    optimal_threshold = th3[optimal_idx]
+    print("Threshold value is:", optimal_threshold)
 
-    plt.plot(
-        fpr2,
-        tpr2,
-        color="darkblue",
-        label="ROC curve for LSTMEncoder (area = %0.2f)" % roc_auc2,
-    )
+    sd = trans_score.loc[trans_score['score'] > optimal_threshold]
+    correct = sd.loc[sd['label'] == 1]
+    print(len(sd), len(correct))
 
-    plt.plot(
-        fpr3,
-        tpr3,
-        color="darkred",
-        label="ROC curve for Transformer (area = %0.2f)" % roc_auc3,
-    )
+    # plt.figure()
+    # plt.plot(
+    #     fpr1,
+    #     tpr1,
+    #     color="darkorange",
+    #     label="ROC curve for Seq2seq (area = %0.2f)" % roc_auc1,
+    # )
 
-    plt.xlim([-0.1, 1.0])
-    plt.ylim([-0.1, 1.05])
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.title("Receiver operating characteristic")
-    plt.legend(loc="lower right")
-    plt.show()
+    # plt.plot(
+    #     fpr2,
+    #     tpr2,
+    #     color="darkblue",
+    #     label="ROC curve for LSTMEncoder (area = %0.2f)" % roc_auc2,
+    # )
+
+    # plt.plot(
+    #     fpr3,
+    #     tpr3,
+    #     color="darkred",
+    #     label="ROC curve for Transformer (area = %0.2f)" % roc_auc3,
+    # )
+
+    # plt.xlim([-0.1, 1.0])
+    # plt.ylim([-0.1, 1.05])
+    # plt.xlabel("False Positive Rate")
+    # plt.ylabel("True Positive Rate")
+    # plt.title("Receiver operating characteristic")
+    # plt.legend(loc="lower right")
+    # plt.show()
 
 
 # plot_roc()

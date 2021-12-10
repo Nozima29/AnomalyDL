@@ -1,24 +1,22 @@
-from seq2seq import Network
-from swat_dataset import SWaTDataset
-from datetime import datetime
-import conf
-from conf import args
-import torch
-from transformer import Transformer
 from autoencoder import RecurrentAutoencoder
 from torch.utils.data import DataLoader
-import numpy as np
+from swat_dataset import SWaTDataset
+from transformer import Transformer
+from datetime import datetime
+from seq2seq import Network
 from utils import get_score
+from conf import args
+import numpy as np
+import torch
+import conf
 
 
 def eval_model(type):
     eval_dataset = SWaTDataset(
         'data/dat/swat-test-P{}.dat'.format(1), attack=True)
     dataloader = DataLoader(eval_dataset, batch_size=args.batch_size)
-    ts, dist = [], []
-    losses, labels = 0, []
-    loss = 0
-    n_datapoints = 0
+    dist = []
+    labels = []
 
     if type == 'trans':
         model = Transformer(args).to(args.device)
@@ -26,7 +24,6 @@ def eval_model(type):
         with open('transfomer', "rb") as f:
             saved_state_dict = torch.load(f)
         model.load_state_dict(saved_state_dict)
-
         start = datetime.now()
         with torch.no_grad():
             model.eval()
@@ -34,20 +31,12 @@ def eval_model(type):
                 given = batch["given"]
                 answer = batch["answer"]
                 labels.append(batch['attack'])
-                ts.append(np.array(batch["ts"]))
                 guess = model(given.to(args.device), given.to(args.device))
-                distance = torch.norm(
-                    guess - answer.to(args.device), p=conf.EVALUATION_NORM_P, dim=1)
-                losses += torch.sum(distance).item()
                 dist.append(
                     torch.abs(answer.to(args.device) - guess).cpu().numpy())
-                n_datapoints += len(ts)
-        loss = losses/n_datapoints
-        print(f'val loss: {loss} ({datetime.now() - start})')
         d = np.concatenate(dist)
         score = np.mean(d, axis=1)
         context = {
-            'loss': loss,
             'dist': score,
             'label': np.concatenate(labels)
         }
@@ -70,37 +59,37 @@ def eval_model(type):
             saved_state_dict = torch.load(f)
         model.load_state_dict(saved_state_dict)
         start = datetime.now()
+        preds, trues = [], []
         with torch.no_grad():
             model.eval()
             for batch in dataloader:
                 input_data = batch['given']
                 target = batch['answer']
                 labels.append(batch['attack'])
-                ts.append(np.array(batch["ts"]))
                 pred = model(input_data.to(conf.args.device))
-                # distance = torch.norm(
-                #     pred - target.to(conf.args.device), p=conf.EVALUATION_NORM_P, dim=1)
-                # loss += torch.sum(distance).item()
+                preds.append(pred.cpu().numpy())
+                trues.append(target.cpu().numpy())
                 dist.append(
                     torch.abs(target.to(conf.args.device) - pred).cpu().numpy())
-                n_datapoints += len(ts)
-        #print(f'val loss: {loss} ({datetime.now() - start})')
-        #loss = loss/n_datapoints
+        preds = np.max(np.concatenate(preds), axis=1)
+        trues = np.max(np.concatenate(trues), axis=1)
         d = np.concatenate(dist)
         score = np.mean(d, axis=1)
         context = {
-            #   'loss': loss,
             'dist': score,
             'label': np.concatenate(labels)
         }
 
     score, label = context['dist'], context['label']
-    import pandas as pd
-    df = pd.DataFrame({'score': score, 'label': label})
-    df.to_csv('{}.csv'.format(type), index=None)
-    #get_score(score, label)
+    get_score(score, label)
 
 
 if __name__ == '__main__':
-    model_type = 'seq'  # 'trans'
+    """
+    Evaluate any of 3 models
+        'trans'=>transformer
+        'seq'=>seq2seq
+        'enc'=>autoencoder
+    """
+    model_type = 'seq'
     eval_model(model_type)

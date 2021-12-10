@@ -1,6 +1,13 @@
 import torch.nn as nn
 from conf import args
 
+"""
+LSTMAutoEncoder Model for SWaT dataset
+    Architecture:
+        - Encoder
+        - Decoder
+"""
+
 
 class Encoder(nn.Module):
 

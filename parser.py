@@ -1,36 +1,24 @@
-import argparse
-import csv
-import pickle
-import sys
-from collections import deque
 from datetime import datetime, timedelta
+from collections import deque
 from typing import Dict, List
-
-import numpy as np
 import pandas as pd
+import numpy as np
+import conf
+import csv
 
-from dataset import conf
-
-#NORMAL = 'data/swat-attack.csv'
-NORMAL = 'data/swat-test.csv'
+DATA = 'data/swat-test.csv'
 
 
 class Normalizer:
     def __init__(self):
-        # Mean and standard dev are calculated from the normal dataset
         self.LR = {}
-        df = pd.read_csv(NORMAL)
+        df = pd.read_csv(DATA)
         df = df.rename(columns=lambda x: x.strip())
-        #self.cols = df.columns
         for col in conf.ALL_SRCS:
             desc = df[col].describe()
             self.LR[col] = (desc['min'], desc['max'])
-            # print(
-            #     f'{col:>10}: {self.LR[col][0]:10.6} - {self.LR[col][1]:10.6}')
 
     def normalize(self, dic: Dict, col: str) -> float:
-        # if col not in conf.ALL_SRCS:
-        #     sys.exit('[FAILED] Invalid column name: {}'.format(col))
         cv = float(dic[col])
         if col in conf.DIGITAL_SRCS:
             return cv / 2  # 0, 0.5, 1
@@ -76,14 +64,14 @@ def data_generator(filename: str):
                                   for pidx in range(conf.N_PROCESS)]
                 split_window = [
                     (w[:conf.WINDOW_GIVEN],
-                     w[conf.WINDOW_GIVEN:conf.WINDOW_GIVEN + conf.WINDOW_PREDICT],
+                     #w[conf.WINDOW_GIVEN:conf.WINDOW_GIVEN + conf.WINDOW_PREDICT],
                      w[-1]) for w in signals_window
                 ]
                 yield q_ts[conf.WINDOW_GIVEN], split_window, attack_window_p(q_attack)
 
 
 def main():
-    g = data_generator(NORMAL)
+    g = data_generator(DATA)
     lines = 0
     lines_attack = 0
 
@@ -130,5 +118,4 @@ def prepare(ex_file):
 
 
 if __name__ == '__main__':
-    # prepare('data/swat-normal.csv')
     main()

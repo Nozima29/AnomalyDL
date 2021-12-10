@@ -1,11 +1,19 @@
-import torch
+from torch.utils.data import DataLoader
+from datetime import datetime
+from torch import nn, optim
 import torch.nn.parallel
 from torch import nn
-from datetime import datetime
-import conf
 import numpy as np
-from torch import nn, optim
-from torch.utils.data import DataLoader
+import torch
+import conf
+
+
+"""
+Seq2Seq Model for SWaT dataset
+    Architecture:
+        - Encoder
+        - DecoderAttention
+"""
 
 
 def swat_time_to_nanosec(t: str) -> int:
@@ -41,7 +49,7 @@ class Encoder(nn.Module):
         hc3 = self.init_hidden_and_cell_state(batch_size, x_gpu)
         hc4 = self.init_hidden_and_cell_state(batch_size, x_gpu)
         x = x.view(batch_size, conf.WINDOW_GIVEN, -1)
-        x = x.transpose(0, 1)  # (batch, seq, params) -> (seq, batch, params)
+        x = x.transpose(0, 1)
         encoder_outs = []
         for point in x:
             hc1 = self.lstm1(point, hc1)
@@ -49,7 +57,7 @@ class Encoder(nn.Module):
             hc3 = self.lstm3(hc2[0], hc3)
             hc4 = self.lstm4(hc3[0], hc4)
             encoder_outs.append(hc4[0].unsqueeze(1))
-        out = torch.cat(encoder_outs, dim=1)  # (B, seq, hiddens)
+        out = torch.cat(encoder_outs, dim=1)
         return out, hc4[1]
 
 
@@ -71,21 +79,17 @@ class AttentionDecoder(nn.Module):
     def forward(self, encoder_outs, context, predict):
         batch_size = predict.size(0)
         x_gpu = 'cpu'  # torch.device('cuda:{}'.format(predict.get_device()))
-        # (batch, seq, params) -> (seq, batch, params)
         predict = predict.transpose(0, 1)
         h_i = context
         c_i = self.init_cell_state(batch_size, x_gpu)
         for idx in range(conf.WINDOW_PREDICT):
             inp = self.extend(predict[idx])
-            # input:(B, params -> hiddens), c_i:(B, hiddens) => attn_weights:(B, window-size given)
             attn_weights = self.attn(torch.cat((inp, context), dim=1))
-            # BMM of attn_weights (B, 1, windows given) and encoding outputs (B, seq, hiddens) -> (B, 1, hiddens)
             attn_applied = torch.bmm(attn_weights.unsqueeze(1), encoder_outs)
             attn_combine = self.attn_combine(
                 torch.cat((inp, attn_applied.squeeze(1)), dim=1))
             h_i, c_i = self.lstm(attn_combine, (h_i, c_i))
-            # h_i : (B, hiddens), self.out : (B, hiddens) -> (B, # of features)
-        return self.out(h_i)  # (B, n_outs, # of features)
+        return self.out(h_i)
 
 
 class Network:

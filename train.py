@@ -1,16 +1,15 @@
-from seq2seq import Network
-from swat_dataset import SWaTDataset
-from datetime import datetime
-import conf
-from conf import args
-import sys
-import torch
-from transformer import Transformer
 from autoencoder import RecurrentAutoencoder
 from torch.utils.data import DataLoader
+from swat_dataset import SWaTDataset
+from transformer import Transformer
+from datetime import datetime
+from seq2seq import Network
 from tqdm import tqdm
+from conf import args
 import numpy as np
-import copy
+import torch
+import conf
+import sys
 
 
 def train_model(type):
@@ -88,5 +87,11 @@ def train_model(type):
 
 
 if __name__ == '__main__':
-    model_type = 'enc'  # 'trans', 'seq'
+    """
+    Train any of 3 models
+        'trans'=>transformer
+        'seq'=>seq2seq
+        'enc'=>autoencoder
+    """
+    model_type = 'enc'
     train_model(model_type)

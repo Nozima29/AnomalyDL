@@ -1,7 +1,18 @@
+import torch.nn.functional as F
+import torch.nn as nn
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
+
+"""
+Transformer Encoder Model for SWaT dataset
+    Architecture:
+        - ScaledDotProductAttention
+        - MultiHeadAttention
+        - PositionwiseForward   
+        - PositionalEncoding     
+        - Encoder (Stack of EncoderLayers)
+"""
 
 
 def get_sinusoid_encoding_table(n_seq, hidn):
